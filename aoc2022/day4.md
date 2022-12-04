@@ -71,29 +71,15 @@ pairs.
 library(tidyverse)
 ```
 
-    -- Attaching packages --------------------------------------- tidyverse 1.3.2 --
-    v ggplot2 3.3.6      v purrr   0.3.4 
-    v tibble  3.1.8      v dplyr   1.0.10
-    v tidyr   1.2.1      v stringr 1.4.1 
-    v readr   2.1.2      v forcats 0.5.2 
-    -- Conflicts ------------------------------------------ tidyverse_conflicts() --
-    x dplyr::filter() masks stats::filter()
-    x dplyr::lag()    masks stats::lag()
-
 ``` r
 assignment_pairs <- read_csv("data/input4a.txt", 
+  show_col_types = FALSE,
   col_names = c("pair1", "pair2")) %>%
   separate(pair1, c("start1", "stop1"), sep = "-") %>%
   separate(pair2, c("start2", "stop2"), sep = "-")
 ```
 
-    Rows: 1000 Columns: 2
-    -- Column specification --------------------------------------------------------
-    Delimiter: ","
-    chr (2): pair1, pair2
-
-    i Use `spec()` to retrieve the full column specification for this data.
-    i Specify the column types or set `show_col_types = FALSE` to quiet this message.
+The key to creating a list column is using map\*.
 
 ``` r
 #' Cleaning assignments
@@ -120,6 +106,8 @@ cleaning_assignments(c(2, 6), c(4, 8))
 
     [[2]]
     [1] 6 7 8
+
+map2_lgl ensures the output is a logical vector
 
 ``` r
 #' Is either assignment fully contained in the other
