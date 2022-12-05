@@ -83,6 +83,7 @@ Elves the message *`CMZ`*.
 of each stack?*
 
 ``` r
+library(testthat)
 library(tidyverse)
 ```
 
@@ -227,28 +228,16 @@ move_9000 <- function(origin, dest, n, stacks) {
   stacks
 }
 
-identical(
+expect_identical(
   move_9000(1, 2, 1, list(X1 = c("A", "B"), X2 = c("C", "D"), X3 = c("X", "Y", "Z"))),
   list(X1 = c("B"), X2 = c("A", "C", "D"), X3 = c("X", "Y", "Z")))
-```
-
-    [1] TRUE
-
-``` r
-identical(
+expect_identical(
   move_9000(2, 1, 2, list(X1 = c("A", "B"), X2 = c("C", "D"), X3 = c("X", "Y", "Z"))),
   list(X1 = c("D", "C", "A", "B"), X2 = character(0), X3 = c("X", "Y", "Z")))
-```
-
-    [1] TRUE
-
-``` r
-identical(
+expect_identical(
   move_9000(3, 1, 3, list(X1 = c("A", "B"), X2 = c("C", "D"), X3 = c("X", "Y", "Z"))),
        list(X1 = c("Z", "Y", "X", "A", "B"), X2 = c("C", "D"), X3 = character(0)))
 ```
-
-    [1] TRUE
 
 Similar to move_9000(), does not need the `n` parameter, but requires
 the `move_1` data. I created this because I thought I could use it with
@@ -263,37 +252,20 @@ move <- function(origin, dest, stacks) {
   stacks
 }
 
-identical(
+expect_identical(
   move(1, 2, list(X1 = c("A", "B"), X2 = c("C", "D"), X3 = c("X", "Y", "Z"))),
        list(X1 = c("B"), X2 = c("A", "C", "D"), X3 = c("X", "Y", "Z")))
-```
-
-    [1] TRUE
-
-``` r
-identical(
+expect_identical(
   move(2, 1, list(X1 = c("A", "B"), X2 = c("C", "D"), X3 = c("X", "Y", "Z"))),
        list(X1 = c("C", "A", "B"), X2 = c("D"), X3 = c("X", "Y", "Z")))
-```
-
-    [1] TRUE
-
-``` r
-identical(
+expect_identical(
   move(2, 3, list(X1 = c("A", "B"), X2 = c("C", "D"), X3 = c("X", "Y", "Z"))),
        list(X1 = c("A", "B"), X2 = c("D"), X3 = c("C", "X", "Y", "Z")))
-```
-
-    [1] TRUE
-
-``` r
 # character() is an empty (length 0) character vector
-identical(
+expect_identical(
   move(1, 2, list(X1 = c("A"), X2 = c("C", "D"), X3 = c("X", "Y", "Z"))),
        list(X1 = character(), X2 = c("A", "C", "D"), X3 = c("X", "Y", "Z")))
 ```
-
-    [1] TRUE
 
 Try out the test data
 
@@ -408,28 +380,16 @@ move_9001 <- function(origin, dest, n, stacks) {
   stacks
 }
 
-identical(
+expect_identical(
   move_9001(1, 2, 1, list(X1 = c("A", "B"), X2 = c("C", "D"), X3 = c("X", "Y", "Z"))),
        list(X1 = c("B"), X2 = c("A", "C", "D"), X3 = c("X", "Y", "Z")))
-```
-
-    [1] TRUE
-
-``` r
-identical(
+expect_identical(
   move_9001(2, 1, 2, list(X1 = c("A", "B"), X2 = c("C", "D"), X3 = c("X", "Y", "Z"))),
        list(X1 = c("C", "D", "A", "B"), X2 = character(0), X3 = c("X", "Y", "Z")))
-```
-
-    [1] TRUE
-
-``` r
-identical(
+expect_identical(
   move_9001(3, 1, 3, list(X1 = c("A", "B"), X2 = c("C", "D"), X3 = c("X", "Y", "Z"))),
        list(X1 = c("X", "Y", "Z", "A", "B"), X2 = c("C", "D"), X3 = character(0)))
 ```
-
-    [1] TRUE
 
 ``` r
 stacks <- stacks_init
