@@ -18,10 +18,7 @@ move_head <- function(h_pos, dir) {
   set_names(c("x", "y")) # just in case I think of a use 
 }
 
-# move_head(c(0, 0), "R") == c(0, 1)
-# move_head(c(1, 2), "D") == c(2, 2)
-# move_head(c(3, 2), "U") == c(2, 2)
-# move_head(c(0, 0), "U") == c(0, -1)
+# the sign() function is useful here
 
 move_tail <- function(h_pos, t_pos) {
   diff <- c(h_pos["x"] - t_pos["x"], h_pos["y"] - t_pos["y"])
@@ -32,13 +29,6 @@ move_tail <- function(h_pos, t_pos) {
   ) %>%
   set_names(c("x", "y"))
 }
-
-# t_pos <- c("x" = 1, "y" = 1)
-# move_tail(t_pos, h_pos <- c("x" = 1, "y" = 2))
-# move_tail(t_pos, h_pos <- c("x" = 2, "y" = 2))
-# move_tail(t_pos, h_pos <- c("x" = 1, "y" = 3))
-# move_tail(t_pos, h_pos <- c("x" = 3, "y" = 1))
-# move_tail(t_pos, h_pos <- c("x" = 3, "y" = 1))
 
 #' Move the head and then the tail
 #' 
