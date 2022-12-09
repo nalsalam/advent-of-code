@@ -43,6 +43,23 @@ move <- function(pos, dir) {
   visited <- append(pos[[3]], list(new_t_pos))
   return(list(new_h_pos, new_t_pos, visited))
 }
+
+move_10 <- function(pos, dir) {
+  new_h_pos <-  move_head(pos[[1]], dir) 
+  new_t1_pos <- move_tail(new_h_pos, pos[[2]])
+  new_t2_pos <- move_tail(new_t1_pos, pos[[3]])
+  new_t3_pos <- move_tail(new_t2_pos, pos[[4]])
+  new_t4_pos <- move_tail(new_t3_pos, pos[[5]])
+  new_t5_pos <- move_tail(new_t4_pos, pos[[6]])
+  new_t6_pos <- move_tail(new_t5_pos, pos[[7]])
+  new_t7_pos <- move_tail(new_t6_pos, pos[[8]])
+  new_t8_pos <- move_tail(new_t7_pos, pos[[9]])
+  new_t9_pos <- move_tail(new_t8_pos, pos[[10]])
+
+  visited <- append(pos[[11]], list(new_t9_pos))
+  return(list(new_h_pos, new_t1_pos, new_t2_pos, new_t3_pos, new_t4_pos, new_t5_pos, new_t6_pos, new_t7_pos, new_t8_pos, new_t9_pos, visited))
+  
+}
 ```
 
 ## Part 1 - Example
@@ -78,6 +95,56 @@ Answer[[3]] %>% unique() %>% length()
 
     [1] 13
 
+## Part 2 - Example
+
+``` r
+pos <- list(c("x" = 1, "y" = 1), 
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            list(c("x" = 1, "y" = 1)))
+
+Answer <- reduce(moves_1, move_10, .init = pos)
+
+Answer[[11]] %>% unique() %>% length() # Never moved
+```
+
+    [1] 1
+
+## Part 2 - Larger Example
+
+``` r
+moves <- read_delim("data/input9b_test.txt", 
+                    col_names = c("dir", "steps"), 
+                    show_col_types = FALSE) 
+# explode into single moves
+moves_1 <- map_dfr(moves, rep, moves$steps) %>% pull(dir) 
+
+pos <- list(c("x" = 1, "y" = 1), 
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            list(c("x" = 1, "y" = 1)))
+
+Answer <- reduce(moves_1, move_10, .init = pos)
+
+Answer[[11]] %>% unique() %>% length() # 36
+```
+
+    [1] 36
+
 ## Part 1
 
 ``` r
@@ -102,8 +169,30 @@ Answer[[2]]
 Answer[[3]] %>% unique() %>% length()
 ```
 
-    [1] 5981
+    [1] 5982
 
 ## Part 2
 
-Woah!
+That reduce takes a while.
+
+``` r
+moves <- read_delim("data/input9a.txt", col_names = c("dir", "steps"), show_col_types = FALSE) 
+moves_1 <- map_dfr(moves, rep, moves$steps) %>% pull(dir) 
+
+pos <- list(c("x" = 1, "y" = 1), 
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            list(c("x" = 1, "y" = 1)))
+
+Answer <- reduce(moves_1, move_10, .init = pos)
+Answer[[11]] %>% unique() %>% length()
+```
+
+    [1] 2352
