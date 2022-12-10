@@ -5,7 +5,7 @@
 library(tidyverse)
 ```
 
-Functions
+## Part 1 - Function
 
 ``` r
 build_stack <- function(file) {
@@ -31,20 +31,18 @@ build_stack <- function(file) {
 # which is the value of X at the end of the prior CYCLE
 
 stack <- build_stack("data/input10a_test.txt")
-max(stack$CYCLE)
-```
 
-    [1] 240
-
-``` r
-map_dfr(seq(20, 220, 40), ~ stack %>% filter(CYCLE == max(stack$CYCLE[stack$CYCLE < .x])) %>% mutate(SS = .x * X)) %>%
+map_dfr(seq(20, 220, 40), ~ stack %>% 
+# took me a while to realize during implies < not <=
+  filter(CYCLE == max(stack$CYCLE[stack$CYCLE < .x])) %>% 
+  mutate(SS = .x * X)) %>%
 
 pull(SS) %>% sum()
 ```
 
     [1] 13140
 
-## Part 1
+## Part 1 - Solution
 
 ``` r
 stack <- build_stack("data/input10a.txt")
@@ -54,10 +52,81 @@ max(stack$CYCLE)
     [1] 240
 
 ``` r
-map_dfr(seq(20, 220, 40), ~ stack %>% filter(CYCLE == max(stack$CYCLE[stack$CYCLE < .x])) %>% mutate(SS = .x * X)) %>%
-pull(SS) %>% sum()
+map_dfr(seq(20, 220, 40), ~ stack %>% 
+  filter(CYCLE == max(stack$CYCLE[stack$CYCLE < .x])) %>% 
+  mutate(SS = .x * X)) %>%  # SS = signal strength
+  
+  pull(SS) %>% sum()
 ```
 
     [1] 14360
 
-## Part 2
+## Part 2 – Function
+
+``` r
+build_stack2 <- function(file) {
+
+  stack <-  
+  read_fwf(file = file, 
+    col_positions = fwf_widths(widths = c(4, 4),
+     col_names = c("op", "x")), 
+    show_col_types = "spec") %>%
+ 
+  mutate(
+    op_cycles = if_else(op == "addx", 2, 1), # number of current cycles
+    CYCLE = cumsum(op_cycles), # completed cycles at end of current cycles, 
+    x = if_else(is.na(x), 0, x), # addition to x at end of current cycles
+    X = 1 + cumsum(x) - x # X at beginning of the current cycle
+    )
+ 
+  map_dfr(stack, rep, stack$op_cycles) %>% 
+    mutate(
+      px_pos = 0:(n()-1), # cycle - 1
+      sprt_l = X-1,
+      sprt_r = X+1,
+      lit = if_else((px_pos %% 40) >= sprt_l & (px_pos %% 40) <= sprt_r, "#", ".")
+    ) %>%
+    select(px_pos, x, X, sprt_l, sprt_r, lit) 
+  
+}
+```
+
+## Part 2 - Example
+
+``` r
+stack2 <- build_stack2("data/input10a_test.txt")
+
+for(i in 0:5) {
+print(paste0(stack2$lit[(i*40 + 1):(i*40 + 40)], collapse = ""))
+}
+```
+
+    [1] "##..##..##..##..##..##..##..##..##..##.."
+    [1] "###...###...###...###...###...###...###."
+    [1] "####....####....####....####....####...."
+    [1] "#####.....#####.....#####.....#####....."
+    [1] "######......######......######......####"
+    [1] "#######.......#######.......#######....."
+
+## Part 2 - Solution
+
+``` r
+stack2 <- build_stack2("data/input10a.txt")
+
+for(i in 0:5) {
+print(paste0(stack2$lit[(i*40 + 1):(i*40 + 40)], collapse = ""))
+}
+```
+
+    [1] "###...##..#..#..##..####.###..####.####."
+    [1] "#..#.#..#.#.#..#..#.#....#..#.#.......#."
+    [1] "###..#....##...#..#.###..#..#.###....#.."
+    [1] "#..#.#.##.#.#..####.#....###..#.....#..."
+    [1] "#..#.#..#.#.#..#..#.#....#.#..#....#...."
+    [1] "###...###.#..#.#..#.####.#..#.####.####."
+
+``` r
+"BGKAEREZ"
+```
+
+    [1] "BGKAEREZ"
