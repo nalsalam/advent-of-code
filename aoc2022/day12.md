@@ -3,7 +3,11 @@
 
 ## Algorithm
 
-Either the Breadth-First-Search (BFS) or the (DFS) DFS.
+I used the Breadth-First-Search (BFS) algorithm found in Cormen,
+Leiserson, Rivst, and Stein, **Introduction to Algorithms**, Third
+Edition, 2009. The book is formal and theoretical with theorems and
+proofs but it is also clear about notation and I found the pseudo code
+easy to follow and translate into R.
 
 ``` r
 library(tidyverse)
@@ -16,7 +20,7 @@ library(tidyverse)
 #' 
 #' Setup grid in global environment
 #' 
-#' Also determine number of rows, number of columns, number of vertices
+#' Also determine number of rows, number of columns, number of vertices, the starting vertex, the ending vertex, and a vector of a vertices needed for part 2.
 
 setup_grid <- function(filename) {
   
@@ -82,6 +86,12 @@ enqueue <- function(Q, s) {
   Q <<- c(Q, s)
 }
 
+#' Setup G 
+#' 
+#' Setup G going down the mountain
+#' 
+#' <=1 becomes >= -1
+
 setup_G_down <- function(grid, n_row, n_col) {
   
   i  <- function(n) ((n-1) %/% n_col) + 1
@@ -103,11 +113,14 @@ setup_G_down <- function(grid, n_row, n_col) {
   return(G)
 }
 
+# remove first element from Q
 dequeue <- function(Q) {
   u <- Q[1]
   Q <<- Q[-1]
   u
 }
+
+# add elment to the end of Q
 enqueue <- function(Q, s) {
   Q <<- c(Q, s)
 }
@@ -115,18 +128,17 @@ enqueue <- function(Q, s) {
 
 ## Some notes
 
-- Translate matrix to graph data structure G which is G(V,E)
-  list-adjacent
+- Translate grid to graph data structure G(V,E) which is list-adjacent.
 
 - Be careful of the assumed order of the vertices. Above we identified E
-  using the byrow order. So maintain that mapping in the create if the
-  `i` and `j` functions.
+  using the byrow order. So maintain that mapping in the `i` and `j`
+  functions.
 
 - Tried attributes but it did not work. One can assign attributes to
   objects like G\[\[1\]\] but not to G\[1\] because ….
 
-- Initially tried to set up data structure with vectorized functions but
-  ran into problems with the edges
+- Initially tried to to use vectorized functions but ran into problems
+  testing for being on an edge
 
 - Garden variety tibble works. Take-away: Don’t try to be too fancy.
 
