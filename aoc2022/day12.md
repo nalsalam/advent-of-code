@@ -77,15 +77,6 @@ setup_G <- function(grid, n_row, n_col) {
   return(G)
 }
 
-dequeue <- function(Q) {
-  u <- Q[1]
-  Q <<- Q[-1]
-  u
-}
-enqueue <- function(Q, s) {
-  Q <<- c(Q, s)
-}
-
 #' Setup G 
 #' 
 #' Setup G going down the mountain
@@ -113,14 +104,18 @@ setup_G_down <- function(grid, n_row, n_col) {
   return(G)
 }
 
-# remove first element from Q
+#' Dequeue
+#' 
+#' Remove first element from Q
 dequeue <- function(Q) {
   u <- Q[1]
   Q <<- Q[-1]
   u
 }
 
-# add elment to the end of Q
+#' Enqueue
+#' 
+#' add element to the end of Q
 enqueue <- function(Q, s) {
   Q <<- c(Q, s)
 }
