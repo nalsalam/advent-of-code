@@ -1,0 +1,174 @@
+---
+title: "-- Day 9 --"
+format: gfm
+editor: visual
+---
+
+```{r, message = FALSE}
+library(tidyverse)
+```
+
+## Functions
+
+```{r}
+
+move_head <- function(h_pos, dir) {
+  case_when(
+    dir == "R" ~ c(h_pos["x"] + 1, h_pos["y"]    ),
+    dir == "D" ~ c(h_pos["x"]    , h_pos["y"] - 1),
+    dir == "L" ~ c(h_pos["x"] - 1, h_pos["y"]    ),
+    dir == "U" ~ c(h_pos["x"]    , h_pos["y"] + 1),
+  ) %>% 
+  set_names(c("x", "y")) # just in case I think of a use 
+}
+
+# the sign() function is useful here
+
+move_tail <- function(h_pos, t_pos) {
+  diff <- c(h_pos["x"] - t_pos["x"], h_pos["y"] - t_pos["y"])
+  
+  case_when(
+     abs(diff["x"]) <= 1 & abs(diff["y"]) <= 1 ~ t_pos, # don't move
+     TRUE ~ t_pos + sign(diff) # move 
+  ) %>%
+  set_names(c("x", "y"))
+}
+
+#' Move the head and then the tail
+#' 
+#' @param pos, a list of two x,y positions for the head and tail and 
+#'   a list of all position, including the current, that have been visited
+#' @param dir, a character, R, D, L, U to indicate the direction
+#' @value, a list of wo x,y positions that the head and tail have moved to
+#' 
+move <- function(pos, dir) {
+  new_h_pos <- move_head(pos[[1]], dir) 
+  new_t_pos <- move_tail(new_h_pos, pos[[2]])
+  visited <- append(pos[[3]], list(new_t_pos))
+  return(list(new_h_pos, new_t_pos, visited))
+}
+
+move_10 <- function(pos, dir) {
+  new_h_pos <-  move_head(pos[[1]], dir) 
+  new_t1_pos <- move_tail(new_h_pos, pos[[2]])
+  new_t2_pos <- move_tail(new_t1_pos, pos[[3]])
+  new_t3_pos <- move_tail(new_t2_pos, pos[[4]])
+  new_t4_pos <- move_tail(new_t3_pos, pos[[5]])
+  new_t5_pos <- move_tail(new_t4_pos, pos[[6]])
+  new_t6_pos <- move_tail(new_t5_pos, pos[[7]])
+  new_t7_pos <- move_tail(new_t6_pos, pos[[8]])
+  new_t8_pos <- move_tail(new_t7_pos, pos[[9]])
+  new_t9_pos <- move_tail(new_t8_pos, pos[[10]])
+
+  visited <- append(pos[[11]], list(new_t9_pos))
+  return(list(new_h_pos, new_t1_pos, new_t2_pos, new_t3_pos, new_t4_pos, new_t5_pos, new_t6_pos, new_t7_pos, new_t8_pos, new_t9_pos, visited))
+  
+}
+
+
+
+```
+
+## Part 1 - Example
+
+```{r}
+moves <- read_delim("data/input9a_test.txt", 
+                    col_names = c("dir", "steps"), 
+                    show_col_types = FALSE) 
+# explode into single moves
+moves_1 <- map_dfr(moves, rep, moves$steps) %>% pull(dir) 
+
+pos <- list(c("x" = 1, "y" = 1), 
+            c("x" = 1, "y" = 1),
+            list(c("x" = 1, "y" = 1)))
+
+Answer <- reduce(moves_1, move, .init = pos)
+Answer[[1]]
+Answer[[2]]
+Answer[[3]] %>% unique() %>% length()
+```
+
+## Part 2 - Example
+
+```{r}
+pos <- list(c("x" = 1, "y" = 1), 
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            list(c("x" = 1, "y" = 1)))
+
+Answer <- reduce(moves_1, move_10, .init = pos)
+
+Answer[[11]] %>% unique() %>% length() # Never moved
+
+```
+
+## Part 2 - Larger Example
+
+```{r}
+moves <- read_delim("data/input9b_test.txt", 
+                    col_names = c("dir", "steps"), 
+                    show_col_types = FALSE) 
+# explode into single moves
+moves_1 <- map_dfr(moves, rep, moves$steps) %>% pull(dir) 
+
+pos <- list(c("x" = 1, "y" = 1), 
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            list(c("x" = 1, "y" = 1)))
+
+Answer <- reduce(moves_1, move_10, .init = pos)
+
+Answer[[11]] %>% unique() %>% length() # 36
+
+```
+
+## Part 1
+
+```{r}
+moves <- read_delim("data/input9a.txt", col_names = c("dir", "steps"), show_col_types = FALSE) 
+moves_1 <- map_dfr(moves, rep, moves$steps) %>% pull(dir) 
+
+Answer <- reduce(moves_1, move, .init = pos)
+Answer[[1]]
+Answer[[2]]
+Answer[[3]] %>% unique() %>% length()
+```
+
+## Part 2
+
+That reduce takes a while.
+
+```{r}
+moves <- read_delim("data/input9a.txt", col_names = c("dir", "steps"), show_col_types = FALSE) 
+moves_1 <- map_dfr(moves, rep, moves$steps) %>% pull(dir) 
+
+pos <- list(c("x" = 1, "y" = 1), 
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            c("x" = 1, "y" = 1),
+            list(c("x" = 1, "y" = 1)))
+
+Answer <- reduce(moves_1, move_10, .init = pos)
+Answer[[11]] %>% unique() %>% length()
+
+```

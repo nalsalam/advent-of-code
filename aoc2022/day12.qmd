@@ -1,0 +1,291 @@
+---
+title: "-- Day 12 Hill Climbing --"
+format: gfm
+editor: visual
+---
+
+## Algorithm
+
+I used the Breadth-First-Search (BFS) algorithm found in Cormen, Leiserson, Rivst, and Stein, **Introduction to Algorithms**, Third Edition, 2009. The book is formal and theoretical with theorems and proofs but it is also clear about notation and I found the pseudo code easy to follow and translate into R.
+
+```{r, message = FALSE}
+library(tidyverse)
+```
+
+## Functions
+
+```{r}
+#' Setup grid
+#' 
+#' Setup grid in global environment
+#' 
+#' Also determine number of rows, number of columns, number of vertices, the starting vertex, the ending vertex, and a vector of a vertices needed for part 2.
+
+setup_grid <- function(filename) {
+  
+  # get the dimensions of the grid
+  input <- read_lines(file_name)
+  n_row <<- length(input)
+  n_col <<- str_length(input[1])
+  
+  # turn into a vector
+  input_v <- paste0(input, collapse = "") %>%
+    str_split("") %>% unlist()
+  n_vertices <<- length(input_v)
+  
+  # clean up
+  S_vertex <<- which(input_v == "S") # 1
+  a_vertices <<- c(S_vertex, which(input_v == "a"))
+  
+  # need to extract solution
+  E_vertex <<- which(input_v == "E") # 22
+  input_v[S_vertex] <- "a"
+  input_v[E_vertex] <- "z"
+  
+  # a-z to 1-26
+  input_n <- as.numeric(factor(input_v))
+  
+  # grid as a matrix
+  matrix(input_n, nrow = n_row, ncol = n_col, byrow = TRUE) 
+
+}
+
+#' Setup tibble
+#' 
+#' Setup tibble to represent the G(V, E) data structure and initialize
+#' color, d, and pi
+#' 
+setup_G <- function(grid, n_row, n_col) {
+  
+  # could read n_row and n_col off of grid
+  
+  i  <- function(n) ((n-1) %/% n_col) + 1
+  j  <- function(n) ((n-1) %% n_col) + 1
+  nd <- function(i, j) (i-1) * n_col + j
+  
+  E <- vector(mode = "list", length = n_vertices)
+  for(n in 1:n_vertices) {
+    E[[n]] <- 
+      c(
+      if(j(n)>1) if(grid[i(n),j(n)-1]-grid[i(n),j(n)] <=1) nd(i(n),j(n)-1),
+      if(j(n)<n_col) if(grid[i(n),j(n)+1]-grid[i(n),j(n)] <=1) nd(i(n),j(n)+1),
+      if(i(n)>1) if(grid[i(n)-1,j(n)]-grid[i(n),j(n)] <=1) nd(i(n)-1,j(n)),
+      if(i(n)<n_row) if(grid[i(n)+1,j(n)]-grid[i(n),j(n)] <=1) nd(i(n)+1,j(n)))
+  }
+  
+  G <- tibble(V = 1:n_vertices, E = E, color = "white", d = Inf, pi = NA_integer_)
+
+  return(G)
+}
+
+#' Setup G 
+#' 
+#' Setup G going down the mountain
+#' 
+#' <=1 becomes >= -1
+
+setup_G_down <- function(grid, n_row, n_col) {
+  
+  i  <- function(n) ((n-1) %/% n_col) + 1
+  j  <- function(n) ((n-1) %% n_col) + 1
+  nd <- function(i, j) (i-1) * n_col + j
+  
+  E <- vector(mode = "list", length = n_vertices)
+  for(n in 1:n_vertices) {
+    E[[n]] <- 
+      c(
+      if(j(n)>1) if(grid[i(n),j(n)-1]-grid[i(n),j(n)] >=-1) nd(i(n),j(n)-1),
+      if(j(n)<n_col) if(grid[i(n),j(n)+1]-grid[i(n),j(n)] >=-1) nd(i(n),j(n)+1),
+      if(i(n)>1) if(grid[i(n)-1,j(n)]-grid[i(n),j(n)] >=-1) nd(i(n)-1,j(n)),
+      if(i(n)<n_row) if(grid[i(n)+1,j(n)]-grid[i(n),j(n)] >=-1) nd(i(n)+1,j(n)))
+  }
+  
+  G <- tibble(V = 1:n_vertices, E = E, color = "white", d = Inf, pi = NA_integer_)
+
+  return(G)
+}
+
+#' Dequeue
+#' 
+#' Remove first element from Q
+dequeue <- function(Q) {
+  u <- Q[1]
+  Q <<- Q[-1]
+  u
+}
+
+#' Enqueue
+#' 
+#' add element to the end of Q
+enqueue <- function(Q, s) {
+  Q <<- c(Q, s)
+}
+
+
+```
+
+## Some notes
+
+-   Translate grid to graph data structure G(V,E) which is list-adjacent.
+
+-   Be careful of the assumed order of the vertices. Above we identified E using the byrow order. So maintain that mapping in the `i` and `j` functions.
+
+-   Tried attributes but it did not work. One can assign attributes to objects like G\[\[1\]\] but not to G\[1\] because ....
+
+-   Initially tried to to use vectorized functions but ran into problems testing for being on an edge
+
+-   Garden variety tibble works. Take-away: Don't try to be too fancy.
+
+# Part 1 - Example
+
+```{r}
+# Read input into a matrix 
+file_name <- "data/input12_test.txt"
+
+grid <- setup_grid(file_name)
+
+G <- setup_G(grid, n_row, n_col)
+
+G$color[S_vertex] <- "gray"
+G$d[] <- 0
+
+Q <- NULL
+Q <- enqueue(Q, S_vertex)
+
+while(!(length(Q) == 0)) {
+  u <- dequeue(Q)
+  for(v in G$E[[u]]) {
+        if(G$color[v] == "white") {
+          G$color[v] <- "gray"
+          G$d[v] <- G$d[u] + 1
+          G$pi[v] <- u
+          enqueue(Q, v)
+        }
+  G$color[u] <- "black"
+  }
+}
+
+G[E_vertex, ]
+
+```
+
+# Part 1 - Solution
+
+```{r}
+# Read input into a matrix 
+file_name <- "data/input12.txt"
+
+grid <- setup_grid(file_name)
+
+G <- setup_G(grid, n_row, n_col)
+
+G$color[S_vertex] <- "gray"
+G$d[S_vertex] <- 0
+G$pi[S_vertex] <- NA_integer_
+
+Q <- NULL
+Q <- enqueue(Q, S_vertex)
+
+while(!(length(Q) == 0)) {
+  u <- dequeue(Q)
+  for(v in G$E[[u]]) {
+        if(G$color[v] == "white") {
+          G$color[v] <- "gray"
+          G$d[v] <- G$d[u] + 1
+          G$pi[v] <- u
+          enqueue(Q, v)
+        }
+  G$color[u] <- "black"
+  }
+}
+
+G[E_vertex, ]  # 534 
+
+```
+
+```{r, eval = FALSE}
+# 3654, 3401, 3400, 3399 looks right
+grid[(i(E_vertex)-3):(i(E_vertex)+3),
+     (j(E_vertex)-3):(j(E_vertex)+3)]
+```
+
+# Part 2
+
+find the shortest path from any square at elevation a to the square marked E.
+
+Thoughts:
+
+-   turn the problem into a descending algorithm for and then look for the shortest distince to an `a` square: `setup_G_down`
+
+-   for this the setup_G function would need to use tests `>= -1`, i.e. cannot descend more than one unit
+
+-   I need the vertices of the `a` squares: `a_vertices`
+
+# Part 2 example
+
+```{r}
+# Read input into a matrix 
+file_name <- "data/input12_test.txt"
+
+grid <- setup_grid(file_name)
+
+G <- setup_G_down(grid, n_row, n_col)
+
+G$color[E_vertex] <- "gray"
+G$d[] <- 0
+
+Q <- NULL
+Q <- enqueue(Q, E_vertex)
+
+while(!(length(Q) == 0)) {
+  u <- dequeue(Q)
+  for(v in G$E[[u]]) {
+        if(G$color[v] == "white") {
+          G$color[v] <- "gray"
+          G$d[v] <- G$d[u] + 1
+          G$pi[v] <- u
+          enqueue(Q, v)
+        }
+  G$color[u] <- "black"
+  }
+}
+
+G[a_vertices, ] %>% filter(d == min(d))
+
+```
+
+# Part 2 - Solution
+
+```{r}
+# Read input into a matrix 
+file_name <- "data/input12.txt"
+
+grid <- setup_grid(file_name)
+
+G <- setup_G_down(grid, n_row, n_col)
+
+G$color[E_vertex] <- "gray"
+G$d[] <- 0
+
+Q <- NULL
+Q <- enqueue(Q, E_vertex)
+
+while(!(length(Q) == 0)) {
+  u <- dequeue(Q)
+  for(v in G$E[[u]]) {
+        if(G$color[v] == "white") {
+          G$color[v] <- "gray"
+          G$d[v] <- G$d[u] + 1
+          G$pi[v] <- u
+          enqueue(Q, v)
+        }
+  G$color[u] <- "black"
+  }
+}
+
+G[S_vertex, ] # 534 same as part 1. That's good.
+
+# a bunch of a_vertices are white, i.e. not reachable from E??
+G[a_vertices, ] %>% filter(color == "black") %>% arrange(d) # 525
+
+```

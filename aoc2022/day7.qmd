@@ -1,0 +1,117 @@
+---
+title: "-- Day 7 --"
+format: gfm
+editor: visual
+---
+
+```{r, message=FALSE}
+library(tidyverse)
+```
+
+Use the yo-yo metaphor
+
+## Parse input
+
+```{r}
+#' Parse input
+#' 
+#' Parse input to find all folders and the size of files
+#' directly in each folder. 
+#' 
+#' Summing down the tree comes later. 
+#' 
+parse_input <- function(file) {
+  x <- read_lines(file)
+  nfolders <- sum(str_detect(x, "^\\$ cd [a-z]+$")) + 1
+
+  path <- vector(mode = "character", length = nfolders)
+  size <- vector(mode = "numeric", length = nfolders)
+  fs <- tibble(path = path, size = size)
+
+  j <- 0 # row index for fs
+  cp <- character(0)
+  cz <- 0
+  i <- 1 # input index
+
+
+while(i <= length(x)) {
+  
+  # process cd's
+  if(str_detect(x[i], "^\\$ cd")) {
+  
+      if(str_detect(x[i], "\\.\\.$")) {
+        cp <- head(cp, -1)
+
+      } else {
+        cp <- c(cp, str_extract(x[i], "[/a-z]+$"))
+        # print(cp)
+        j <- j + 1
+        fs[j, 1] <- paste(cp, collapse = "")
+
+      }
+      
+      i <- i + 1
+  
+  # process ls - current folder    
+  } else if(str_detect(x[i], "^\\$ ls")) {
+      i <- i + 1
+      cz <- 0
+      while(i <= length(x) & !str_detect(x[i], "^\\$")) {
+        fz = str_split(x[i], " ")
+        cz <- sum(cz, as.numeric(fz[[1]]), na.rm = TRUE)
+        i <- i + 1
+      }
+      # print(cz)
+      fs[j, 2] <- cz
+
+  }
+
+  next  
+}
+  fs
+}
+
+```
+
+Part 1 Example
+
+```{r, message=FALSE, warning=FALSE}
+fs <- parse_input("data/input7a_test.txt")
+
+SIZES <- map_dbl(fs$path, 
+    ~ fs %>% filter(str_detect(path, .x)) %>% summarize(SIZE = sum(size)) %>% pull(SIZE))
+
+sum(SIZES[SIZES < 1e5])
+
+```
+
+Part 2 - example
+
+```{r}
+free_space <- 7e7 - SIZES[1]
+need <- 3e7 - free_space
+min(SIZES[SIZES > need])
+
+```
+
+Part 1
+
+```{r, message=FALSE, warning=FALSE}
+fs <- parse_input("data/input7a.txt")
+
+SIZES <- map_dbl(fs$path, 
+    ~ fs %>% filter(str_detect(path, .x)) %>% summarize(SIZE = sum(size)) %>% pull(SIZE))
+
+sum(SIZES[SIZES < 1e5])
+
+```
+
+Part 2
+
+```{r}
+free_space <- 7e7 - SIZES[1]
+need <- 3e7 - free_space
+min(SIZES[SIZES > need])
+
+
+```

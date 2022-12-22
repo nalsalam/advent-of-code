@@ -1,0 +1,23 @@
+---
+title: "-- Day 14 --"
+format: html
+editor: visual
+---
+
+## Regolith Reservoir 
+
+(We return to this on day 17)
+
+Step 1
+
+Read puzzle input and use it to fill in the rock walls.
+
+Step 2
+
+Let the sand fall, move diagonaly left, move diagonally right, to find a resting spot
+
+At some point no more resting spots are left and the sand falls into the abys.
+
+*How many units of sand come to rest before sand starts flowing into the abyss below?*
+
+In the example 24 units of sand fall and come to rest. No more can after that.

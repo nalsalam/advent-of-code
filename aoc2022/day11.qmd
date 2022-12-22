@@ -1,0 +1,453 @@
+---
+title: "-- Day 11 Monkey Business --"
+format: gfm
+editor: visual
+---
+
+## LCM
+
+> All of the tests are "is the worry value divisible by x". That means if we take worry value %% \[least common multiple of all divisors\], the tests will be unaffected. All the divisor tests are prime, so getting the LCM is just a matter of multiplying all divisors together.
+
+-   Dan Ready's solution line 168
+
+In part 1:
+
+> After each monkey inspects an item but before it tests your worry level, your relief that the monkey's inspection didn't damage the item causes your worry level to be divided by three and rounded down to the nearest integer.
+
+In part 2:
+
+> After each monkey inspects an item but before it tests your worry level, your relief that the monkey's inspection didn't damage the item causes your worry level to be divided by one.
+
+Can we bring down that worry level and not affect the result of the test? Yes, worry_level %% product of test divisors div1, div2, etc.
+
+(x %% div1 == 0) === (x %% (div1 \* div2) == 0)
+
+**Generalize the function factor to include the divisor of 3 or lcm.**
+
+```{r, message = FALSE}
+library(testthat)
+library(tidyverse)
+```
+
+## Puzzle Input
+
+```{r}
+monkeys_raw <- read_lines("data/input11a_test.txt") %>%
+split(factor(0:(length(.) - 1) %/% 7))
+
+monkeys_raw <- set_names(monkeys_raw, 0:(length(monkeys_raw) - 1))
+monkeys_raw
+
+```
+
+## Monkey Behavior -- Function Factory
+
+A function factory (https://adv-r.hadley.nz/function-factories.html) is a function that makes functions. `make_monkey` returns a function that behaves like the monkeys in the example (and puzzle input).
+
+```{r}
+
+# an inside function to make a monkey with certain behavior
+make_monkey <- function(value, op, div, t, f) {
+  function(worry) {
+    
+    new_worry <- floor(op(worry, value) / 3)
+    
+    receiver <- if_else(new_worry %% div == 0, t, f) %>% as.character()
+    return(list(receiver, new_worry))
+  }
+}
+
+# Tests from the example
+# expect_identical is silent if the test passes
+
+monkey0 <- make_monkey(19, `*`, 23, 2, 3)
+expect_identical(monkey0(79), list("3", 500))
+expect_identical(monkey0(98), list("3", 620))
+
+monkey1 <- make_monkey(6, `+`, 19, 2, 0)
+expect_identical(monkey1(54), list("0", 20))
+expect_identical(monkey1(65), list("0", 23))
+expect_identical(monkey1(75), list("0", 27))
+expect_identical(monkey1(74), list("0", 26))
+
+monkey2 <- make_monkey(2, `^`, 13, 1, 3)  # old * old = old ^ 2
+expect_identical(monkey2(79), list("1", 2080)) 
+expect_identical(monkey2(60), list("3", 1200))
+expect_identical(monkey2(97), list("3", 3136))
+
+monkey3 <- make_monkey(3, `+`, 17, 0, 1)
+expect_identical(monkey3(74), list("1", 25))
+expect_identical(monkey3(500), list("1", 167))
+expect_identical(monkey3(620), list("1", 207))
+
+#' Parse monkeys_raw to get the parameters and then 
+#' build the monkey behavior using the above function
+
+build_monkey <- function(monkeys_raw) {
+  
+if(str_detect(monkeys_raw[3], "old \\* old")) {
+  op <- "^" %>% as.symbol()
+  value <- 2
+} else {
+  op <- str_extract(monkeys_raw[3], "[*+]") %>% as.symbol()
+  value <- str_extract(monkeys_raw[3], "\\d+$") %>% as.numeric()
+}
+div <- str_extract(monkeys_raw[4], "\\d+$") %>% as.numeric()
+t   <- str_extract(monkeys_raw[5], "\\d$")  %>% as.numeric()
+f   <- str_extract(monkeys_raw[6], "\\d$")  %>% as.numeric()
+
+make_monkey(value, eval(op), div, t, f)
+
+}
+
+monkey0 <- build_monkey(monkeys_raw[["0"]])
+expect_identical(monkey0(79), list("3", 500))
+expect_identical(monkey0(98), list("3", 620))
+
+monkey1 <- build_monkey(monkeys_raw[["1"]])
+expect_identical(monkey1(54), list("0", 20))
+expect_identical(monkey1(65), list("0", 23))
+expect_identical(monkey1(75), list("0", 27))
+expect_identical(monkey1(74), list("0", 26))
+
+monkey2 <- build_monkey(monkeys_raw[["2"]])  # old * old = old ^ 2
+expect_identical(monkey2(79), list("1", 2080)) 
+expect_identical(monkey2(60), list("3", 1200))
+expect_identical(monkey2(97), list("3", 3136))
+
+monkey3 <- build_monkey(monkeys_raw[["3"]])
+expect_identical(monkey3(74), list("1", 25))
+expect_identical(monkey3(500), list("1", 167))
+expect_identical(monkey3(620), list("1", 207))
+
+
+
+```
+
+## Who Has What?
+
+```{r}
+
+parse_starting_items <- function(monkey_raw) {
+  str_remove(monkey_raw[[2]], "Starting items: ") %>% str_split(", ") %>%
+  unlist() %>% as.integer()
+}
+
+# Example
+who_what_0 <- map(monkeys_raw, parse_starting_items)
+
+# Keep track of this in a separate list to avoid list depth hell
+init_inspected <- function() {
+inspected <<- rep(0, length(monkeys_raw)) %>% set_names(as.character(0:(length(monkeys_raw) - 1)))
+}
+init_inspected()
+inspected
+
+```
+
+### Throw, Update Who Has What, Update Inspected
+
+```{r}
+
+monkey_fns <- c("0" = monkey0, "1" = monkey1, "2" = monkey2, "3" = monkey3)
+monkey_fns[["0"]](79)
+monkey_fns[["0"]](98)
+
+throw_update <- function(who_what, thrower,
+                         .monkey_fns = monkey_fns) {
+  
+  throw <- .monkey_fns[[thrower]](who_what[[thrower]][1])
+    receiver <- throw[[1]]
+    value <- throw[[2]]
+
+  # receiver
+  who_what[receiver][[1]] <- c(who_what[receiver][[1]], value)
+  # remove from throwing monkey
+  who_what[thrower][[1]] <- tail(who_what[[thrower]], -1)
+  
+  inspected[thrower] <<- inspected[thrower] + 1 
+  
+  who_what
+
+}
+
+# Round 1 - thrower and number of items thrower holds
+init_inspected()
+who_what_1 <- reduce(rep("0", length(who_what_0[["0"]])), throw_update, .init = who_what_0)
+who_what_2 <- reduce(rep("1", length(who_what_1[["1"]])), throw_update, .init = who_what_1)
+who_what_3 <- reduce(rep("2", length(who_what_2[["2"]])), throw_update, .init = who_what_2)
+who_what_4 <- reduce(rep("3", length(who_what_3[["3"]])), throw_update, .init = who_what_3)
+who_what_4
+inspected
+
+# Use the magrittr . pronoun
+init_inspected()
+reduce(rep("0", length(who_what_0[["0"]])), throw_update, .init = who_what_0) %>%
+reduce(rep("1", length(.[["1"]])), throw_update, .init = .) %>% 
+reduce(rep("2", length(.[["2"]])), throw_update, .init = .) %>% 
+reduce(rep("3", length(.[["3"]])), throw_update, .init = .)
+inspected
+
+# Do 20 rounds
+
+do_round <- function(who_what_0, round) {
+  reduce(rep("0", length(who_what_0[["0"]])), throw_update, .init = who_what_0) %>%
+  reduce(rep("1", length(.[["1"]])), throw_update, .init = .) %>% 
+  reduce(rep("2", length(.[["2"]])), throw_update, .init = .) %>% 
+  reduce(rep("3", length(.[["3"]])), throw_update, .init = .)
+}
+
+
+
+```
+
+## Part 1 - Example
+
+```{r}
+init_inspected()
+reduce(1:20, do_round, .init = who_what_0)
+sort(inspected, decreasing = TRUE)[1] * sort(inspected, decreasing = TRUE)[2]
+# 10605
+
+```
+
+## Part 1 - Solution
+
+```{r}
+monkeys_raw <- read_lines("data/input11a.txt") %>%
+split(factor(0:(length(.) - 1) %/% 7))
+monkeys_raw <- set_names(monkeys_raw, 0:(length(monkeys_raw) - 1))
+names(monkeys_raw)
+
+who_what_0 <- map(monkeys_raw, parse_starting_items)
+
+monkey0 <- build_monkey(monkeys_raw[["0"]])
+monkey1 <- build_monkey(monkeys_raw[["1"]])
+monkey2 <- build_monkey(monkeys_raw[["2"]])
+monkey3 <- build_monkey(monkeys_raw[["3"]])
+monkey4 <- build_monkey(monkeys_raw[["4"]])
+monkey5 <- build_monkey(monkeys_raw[["5"]])
+monkey6 <- build_monkey(monkeys_raw[["6"]])
+monkey7 <- build_monkey(monkeys_raw[["7"]])
+
+monkey_fns <- c("0" = monkey0, "1" = monkey1, "2" = monkey2, "3" = monkey3, "4" = monkey4, "5" = monkey5, "6" = monkey6, "7" = monkey7)
+
+do_round <- function(who_what_0, round) {
+  reduce(rep("0", length(who_what_0[["0"]])), throw_update, .init = who_what_0) %>%
+  reduce(rep("1", length(.[["1"]])), throw_update, .init = .) %>% 
+  reduce(rep("2", length(.[["2"]])), throw_update, .init = .) %>% 
+  reduce(rep("3", length(.[["3"]])), throw_update, .init = .) %>%
+  reduce(rep("4", length(.[["4"]])), throw_update, .init = .) %>%
+  reduce(rep("5", length(.[["5"]])), throw_update, .init = .) %>%
+  reduce(rep("6", length(.[["6"]])), throw_update, .init = .) %>%
+  reduce(rep("7", length(.[["7"]])), throw_update, .init = .) 
+}
+
+init_inspected()
+reduce(1:20, do_round, .init = who_what_0)
+
+sort(inspected, decreasing = TRUE)[1] * sort(inspected, decreasing = TRUE)[2]
+
+# 101436
+
+```
+
+## Part 2 - Example (1e5 rounds!)
+
+No longer divided by 3. Number get huge quickly
+
+```{r}
+monkeys_raw <- read_lines("data/input11a_test.txt") %>%
+split(factor(0:(length(.) - 1) %/% 7))
+monkeys_raw <- set_names(monkeys_raw, 0:(length(monkeys_raw) - 1))
+names(monkeys_raw)
+
+```
+
+```{r}
+
+lcm <- 23 * 19 * 13 * 17
+
+make_monkey <- function(value, op, div, t, f) {
+  function(worry) {
+    
+    new_worry <- op(worry, value) %% lcm
+    
+    receiver <- if_else(new_worry %% div == 0, t, f) %>% as.character()
+    return(list(receiver, new_worry))
+  }
+}
+
+# using integers
+build_monkey <- function(monkeys_raw) {
+  
+if(str_detect(monkeys_raw[3], "old \\* old")) {
+  op <- "^" %>% as.symbol()
+  value <- 2
+} else {
+  op <- str_extract(monkeys_raw[3], "[*+]") %>% as.symbol()
+  value <- str_extract(monkeys_raw[3], "\\d+$") %>% as.integer()
+}
+div <- str_extract(monkeys_raw[4], "\\d+$") %>% as.integer()
+t   <- str_extract(monkeys_raw[5], "\\d$")  %>% as.integer()
+f   <- str_extract(monkeys_raw[6], "\\d$")  %>% as.integer()
+
+make_monkey(value, eval(op), div, t, f)
+
+}
+
+
+```
+
+```{r}
+who_what_0 <- map(monkeys_raw, parse_starting_items)
+
+monkey0 <- build_monkey(monkeys_raw[["0"]])
+monkey1 <- build_monkey(monkeys_raw[["1"]])
+monkey2 <- build_monkey(monkeys_raw[["2"]])
+monkey3 <- build_monkey(monkeys_raw[["3"]])
+
+monkey_fns <- c("0" = monkey0, "1" = monkey1, "2" = monkey2, "3" = monkey3)
+
+throw_update <- function(who_what, thrower,
+                         .monkey_fns = monkey_fns) {
+  
+  throw <- .monkey_fns[[thrower]](who_what[[thrower]][1])
+    receiver <- throw[[1]]
+    value <- throw[[2]]
+
+  # receiver
+  who_what[receiver][[1]] <- c(who_what[receiver][[1]], value)
+  # remove from throwing monkey
+  who_what[thrower][[1]] <- tail(who_what[[thrower]], -1)
+  inspected[thrower] <<- inspected[thrower] + 1 
+  who_what
+
+}
+
+
+do_round <- function(who_what_0, round) {
+  reduce(rep("0", length(who_what_0[["0"]])), throw_update, .init = who_what_0) %>%
+  reduce(rep("1", length(.[["1"]])), throw_update, .init = .) %>% 
+  reduce(rep("2", length(.[["2"]])), throw_update, .init = .) %>% 
+  reduce(rep("3", length(.[["3"]])), throw_update, .init = .) 
+}
+
+init_inspected()
+reduce(1:1, do_round, .init = who_what_0) %>% invisible()
+inspected
+
+init_inspected()
+reduce(1:20, do_round, .init = who_what_0) %>% invisible()
+inspected
+
+init_inspected()
+reduce(1:1000, do_round, .init = who_what_0) %>% invisible()
+inspected
+
+init_inspected()
+reduce(1:10000, do_round, .init = who_what_0) %>% invisible()
+inspected
+
+sort(inspected, decreasing = TRUE)[1] * sort(inspected, decreasing = TRUE)[2]
+
+# 2713310158 
+
+```
+
+## Part 2 - Solution (1e5 rounds!)
+
+No longer divided by 3. Number get huge quickly
+
+```{r}
+monkeys_raw <- read_lines("data/input11a.txt") %>%
+split(factor(0:(length(.) - 1) %/% 7))
+monkeys_raw <- set_names(monkeys_raw, 0:(length(monkeys_raw) - 1))
+
+```
+
+```{r}
+
+lcm <- 19 * 5 * 11 * 17 * 7 * 13 * 3 * 2
+
+make_monkey <- function(value, op, div, t, f) {
+  function(worry) {
+    
+    new_worry <- op(worry, value) %% lcm
+    
+    receiver <- if_else(new_worry %% div == 0, t, f) %>% as.character()
+    return(list(receiver, new_worry))
+  }
+}
+
+# using integers
+build_monkey <- function(monkeys_raw) {
+  
+if(str_detect(monkeys_raw[3], "old \\* old")) {
+  op <- "^" %>% as.symbol()
+  value <- 2
+} else {
+  op <- str_extract(monkeys_raw[3], "[*+]") %>% as.symbol()
+  value <- str_extract(monkeys_raw[3], "\\d+$") %>% as.integer()
+}
+div <- str_extract(monkeys_raw[4], "\\d+$") %>% as.integer()
+t   <- str_extract(monkeys_raw[5], "\\d$")  %>% as.integer()
+f   <- str_extract(monkeys_raw[6], "\\d$")  %>% as.integer()
+
+make_monkey(value, eval(op), div, t, f)
+
+}
+
+
+```
+
+```{r}
+who_what_0 <- map(monkeys_raw, parse_starting_items)
+
+monkey_fns <- 
+  map(
+    as.character(0:(length(monkeys_raw)-1)),
+    ~ build_monkey(monkeys_raw[[.x]])
+  ) %>%
+  set_names(as.character(0:(length(monkeys_raw)-1)))
+
+throw_update <- function(who_what, thrower,
+                         .monkey_fns = monkey_fns) {
+  
+  throw <- .monkey_fns[[thrower]](who_what[[thrower]][1])
+    receiver <- throw[[1]]
+    value <- throw[[2]]
+
+  # receiver
+  who_what[receiver][[1]] <- c(who_what[receiver][[1]], value)
+  # remove from throwing monkey
+  who_what[thrower][[1]] <- tail(who_what[[thrower]], -1)
+  inspected[thrower] <<- inspected[thrower] + 1 
+  who_what
+
+}
+
+# clean this up
+do_round <- function(who_what_0, round) {
+  reduce(rep("0", length(who_what_0[["0"]])), throw_update, .init = who_what_0) %>%
+  reduce(rep("1", length(.[["1"]])), throw_update, .init = .) %>% 
+  reduce(rep("2", length(.[["2"]])), throw_update, .init = .) %>% 
+  reduce(rep("3", length(.[["3"]])), throw_update, .init = .) %>%
+  reduce(rep("4", length(.[["4"]])), throw_update, .init = .) %>%
+  reduce(rep("5", length(.[["5"]])), throw_update, .init = .) %>%
+  reduce(rep("6", length(.[["6"]])), throw_update, .init = .) %>%
+  reduce(rep("7", length(.[["7"]])), throw_update, .init = .) 
+}
+
+init_inspected()
+reduce(1:10000, do_round, .init = who_what_0) %>% invisible()
+inspected
+
+sort(inspected, decreasing = TRUE)[1] * sort(inspected, decreasing = TRUE)[2]
+
+# 19754471646
+
+
+```
+
+## 
